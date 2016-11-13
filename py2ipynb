@@ -320,51 +320,58 @@ def convert_to(in_name):
 
 # In[ ]:
 
-import sys, getopt
+import sys
+import argparse
 
 def ipynb_main():
     import __main__ as main
     if not hasattr(main, '__file__'):
-        print("converting py2ipynb.ipynb")
-        with open("py2ipynb.py", "w") as f:
-            f.write(convert_from("py2ipynb.ipynb", strip=True))
+        sys.argv = ["py2ipynb", "-o", "py2ipynb.py", "--verb", "--input", "py2ipynb.ipynb"]
         return True
     return False
 
-def usage(cmdline):
-    print("Usage: %s <options> <filename.ipynb|filename.py>" % cmdline)
-    print("       %s --help, -h" % cmdline)
-    print("")
-    print(" options:")
-    print("     --from, -f : from ipynb to py")
-    print("     --to, -t : from py to ipynb")
-    sys.exit(2)
-
-def main(*args, **kwargv):
-    if len(args) < 1:
-        usage()
+def main(args):
+    in_file = args.input or args.filename
+    mode = args.mode or (in_file.endswith(".py") and "to") or (in_file.endswith(".ipynb") and "from")
+    if not mode:
+        return None
+    out_file = args.output
+    if out_file is None:
+        out_file = in_file + (".py" if mode == "from" else ".ipynb")
+    #fin = sys.stdin if in_file == "stdin" else open(in_file)
+    fout = sys.stdout if out_file == "stdout" else open(out_file, "w")
+    if mode == "from":
+        fout.write(convert_from(in_file, strip=args.strip))
     else:
-        fn = args[0]
-        mode = ""
-        if "--from" in kwargv or "-f" in kwargv:
-            mode = "--from"
-        if "--to" in kwargv or "-t" in kwargv:
-            mode = "--to"
-        if mode == "" and fn.endswith(".ipynb") or mode == "--from":
-            print(convert_from(fn, strip="--strip" in kwargv))
-        elif mode == "" and fn.endswith(".py") or mode == "--to":
-            nbformat.write(convert_to(fn), sys.stdout, 4)
+        nbformat.write(convert_to(in_file), fout, 4)
+    return True
 
 if __name__ == "__main__":
-    if not ipynb_main():
-        #sys.argv = ["py2ipynb", "-h", "--from", "-f", "py2ipynb.ipynb"]
-        try:
-            opts, args = getopt.getopt(sys.argv[1:], "hft", ["help", "from", "to", "strip"])
-        except getopt.GetoptError:
-            usage(sys.argv[0])
-        opts = dict(opts)
-        if "-h" in opts or "--help" in opts:
-            print(opts, args)
-            usage(sys.argv[0])
-        main(*args, **opts)
+    if ipynb_main():
+        print("converting py2ipynb.ipynb")
+    argparser = argparse.ArgumentParser(description='Convert from py file to ipynb file.')
+    group_ft = argparser.add_mutually_exclusive_group()
+    group_ft.add_argument("-f", "--from", help="from ipynb to py", dest="mode", action="store_const", const="from")
+    group_ft.add_argument("-t", "--to", help="from py to ipynb", dest="mode", action="store_const", const="to")
+
+    argparser.add_argument("-o", "--output", nargs="?", default="stdout",
+                           help="output filename,\n" +
+                               "if not specific <file_basename.py(from)|file_basename.ipynb(to)> will be used,\n" +
+                               "if not present will output to stdout")
+    group_in = argparser.add_mutually_exclusive_group(required=True)
+    group_in.add_argument("-i", "--input", help="input filename")
+    group_in.add_argument("filename", nargs="?", type=str, help="ipynb or py file")
+    group_strip = argparser.add_mutually_exclusive_group()
+    group_strip.add_argument('--no-strip', dest='strip', action='store_false',
+                             help="whether strip trailing space in code cell")
+    group_strip.add_argument('--strip', dest='strip', action='store_true', help="defaut is True")
+    argparser.set_defaults(strip=True)
+    argparser.add_argument("--verbose", help="print verbose information", action="store_true")
+
+    args = argparser.parse_args()
+    if args.verbose:
+        #argparser.print_help()
+        print("arguments:", args, file=sys.stderr)
+    if main(args) is None:
+        argparser.print_help()
 
