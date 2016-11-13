@@ -9,18 +9,21 @@
 import nbformat
 from nbconvert import export_python
 
-def clean_cell(cell):
+def clean_cell(cell, strip=False):
     if cell["cell_type"] == "code":
         del cell["execution_count"]
-    if cell["cell_type"] == "markdown":
-        if isinstance(cell["source"], str) and (len(cell["source"])==0 or cell["source"][-1]!='\n'):
-            cell["source"] += "\n"
+    if cell["cell_type"] == "markdown" or cell["cell_type"] == "code":
+        if isinstance(cell["source"], str):
+            cell["source"] = cell["source"].split("\n")
+        if strip:
+            cell["source"] = [s.rstrip() + "\n" for s in cell["source"]]
+        cell["source"] = "".join(cell["source"])
     return cell
 
-def convert_to(in_name):
+def convert_from(in_name, strip=False):
     nb0 = nbformat.read(in_name, as_version=4)
     for x in nb0["cells"]:
-        clean_cell(x)
+        clean_cell(x, strip=strip)
 
     (a0, _) = export_python(nb0)
 
@@ -112,10 +115,10 @@ class PAnd(ParseExpression):
             self.q = [a, *b.q]
         else:
             self.q = [a, b]
-    
+
     def __str__(self):
         return "%s" % ("".join([str(x) for x in self.q]))
-    
+
     def parse(self, t):
         its, tx = [], t
         for x in self.q:
@@ -135,10 +138,10 @@ class POr(ParseExpression):
             self.q = [a, *b.q]
         else:
             self.q = [a, b]
-    
+
     def __str__(self):
         return "%s" % ("|".join([str(x) for x in self.q]))
-    
+
     def parse(self, t):
         for x in self.q:
             i, tx = x.parse(t)
@@ -158,7 +161,7 @@ class ZeroOrMore(ParseExpression):
 
     def __str__(self):
         return "(%s)*%s" % (self.a, not self.greedy and "?" or "")
-    
+
     def parse(self, t):
         its, tx = [], t
         while True:
@@ -176,23 +179,23 @@ class OneOrMore(ParseExpression):
             self.a = a.a
         else:
             self.a = PAnd(a, ZeroOrMore(a, greedy=greedy))
-    
+
     def __str__(self):
         return "%s" % self.a
-    
+
     def parse(self, t):
         return self.a.parse(t)
 
 class PToken(ParseElement):
     def __init__(self, s):
         self.s = s
-    
+
     def __str__(self):
         return r'~\d+\.%s' % self.s
-    
+
     def isequal(self, x):
         return x[0] == self.s
-    
+
     def parse(self, t):
         if self.isequal(t[0]):
             return [t[0]], t[1:]
@@ -203,10 +206,10 @@ class PSuppress(ParseElement):
         if not isinstance(a, ParseElement):
             raise CompileError()
         self.a = a
-    
+
     def __str__(self):
         return "%s" % self.a
-    
+
     def parse(self, t):
         i, t = self.a.parse(t)
         if i is None:
@@ -219,10 +222,10 @@ class PCapture(ParseElement):
         if not isinstance(a, ParseElement):
             raise CompileError()
         self.a = a
-    
+
     def __str__(self):
         return "(%s)" % self.a
-    
+
     def parse(self, t):
         return self.a.parse(t)
 
@@ -299,7 +302,7 @@ def normalize_cell(ct, cc):
 
 import nbformat
 
-def convert_from(in_name):
+def convert_to(in_name):
     with open(in_name) as f:
         a = f.readlines()
     t = [lx(x) for x in a]
@@ -315,25 +318,51 @@ def convert_from(in_name):
 
 # In[ ]:
 
-import sys
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: %s <filename.ipynb|filename.py>")
+import sys, getopt
+
+def ipynb_main():
+    import __main__ as main
+    if not hasattr(main, '__file__'):
+        print("converting py2ipynb.ipynb")
+        with open("py2ipynb.py", "w") as f:
+            f.write(convert_from("py2ipynb.ipynb", strip=True))
+        return True
+    return False
+
+def usage(cmdline):
+    print("Usage: %s <options> <filename.ipynb|filename.py>" % cmdline)
+    print("       %s --help, -h" % cmdline)
+    print("")
+    print(" options:")
+    print("     --from, -f : from ipynb to py")
+    print("     --to, -t : from py to ipynb")
+    sys.exit(2)
+
+def main(*args, **kwargv):
+    if len(args) < 1:
+        usage()
     else:
-        fn = sys.argv[1]
-        if fn.endswith(".ipynb"):
-            print(convert_to(fn))
-        elif fn.endswith(".py"):
-            nbformat.write(convert_from(fn), sys.stdout, 4)
+        fn = args[0]
+        mode = ""
+        if "--from" in kwargv or "-f" in kwargv:
+            mode = "--from"
+        if "--to" in kwargv or "-t" in kwargv:
+            mode = "--to"
+        if mode == "" and fn.endswith(".ipynb") or mode == "--from":
+            print(convert_from(fn))
+        elif mode == "" and fn.endswith(".py") or mode == "--to":
+            nbformat.write(convert_to(fn, strip="--strip" in kwargv), sys.stdout, 4)
 
-
-# In[ ]:
-
-sys.exit()
-
-
-# In[ ]:
-
-with open("py2ipynb.py", "w") as f:
-    f.write(convert_to("py2ipynb.ipynb"))
+if __name__ == "__main__":
+    if not ipynb_main():
+        #sys.argv = ["py2ipynb", "-h", "--from", "-f", "py2ipynb.ipynb"]
+        try:
+            opts, args = getopt.getopt(sys.argv[1:], "hft", ["help", "from", "to", "strip"])
+        except getopt.GetoptError:
+            usage(sys.argv[0])
+        opts = dict(opts)
+        if "-h" in opts or "--help" in opts:
+            print(opts, args)
+            usage(sys.argv[0])
+        main(*args, **opts)
 
