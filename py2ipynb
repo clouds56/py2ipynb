@@ -15,8 +15,10 @@ def clean_cell(cell, strip=False):
     if cell["cell_type"] == "markdown" or cell["cell_type"] == "code":
         if isinstance(cell["source"], str):
             cell["source"] = cell["source"].split("\n")
-        if strip:
+        if cell["cell_type"] != "markdown" and strip:
             cell["source"] = [s.rstrip() + "\n" for s in cell["source"]]
+        else:
+            cell["source"] = [s + "\n" for s in cell["source"]]
         cell["source"] = "".join(cell["source"])
     return cell
 
@@ -349,9 +351,9 @@ def main(*args, **kwargv):
         if "--to" in kwargv or "-t" in kwargv:
             mode = "--to"
         if mode == "" and fn.endswith(".ipynb") or mode == "--from":
-            print(convert_from(fn))
+            print(convert_from(fn, strip="--strip" in kwargv))
         elif mode == "" and fn.endswith(".py") or mode == "--to":
-            nbformat.write(convert_to(fn, strip="--strip" in kwargv), sys.stdout, 4)
+            nbformat.write(convert_to(fn), sys.stdout, 4)
 
 if __name__ == "__main__":
     if not ipynb_main():
