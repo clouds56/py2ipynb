@@ -17,13 +17,19 @@ def check(input, output):
     info('%s is latest' % output)
     return False
 
-def decompile(input, output):
+def decompile(input, output, pipe=False):
     if check(input, output):
-        sh([bin / basename, "-t", "--strip", "-o", output, "-i", input, "--verb"])
+        if not pipe:
+            sh([bin / basename, "-t", "--strip", "-o", output, "-i", input, "--verb"])
+        else:
+            sh("cat '%s' | '%s' --to --verbose > '%s'" % (input, bin/basename, output))
 
-def compile(input, output):
+def compile(input, output, pipe=False):
     if check(input, output):
-        sh([bin / basename, "-f", input, "-o", output, "--verb"])
+        if not pipe:
+            sh([bin / basename, "-f", input, "-o", output, "--verb"])
+        else:
+            sh("cat '%s' | '%s' --from --verbose > '%s'" % (input, bin/basename, output))
 
 @task
 def build():
@@ -38,8 +44,8 @@ def test():
     test_in = bin / ("%s.py" % basename)
     test_out = test_dir / ("%s.ipynb" % basename)
     test_in2 = test_dir / ("%s.py" % basename)
-    decompile(test_in, test_out)
-    compile(test_out, test_in2)
+    decompile(test_in, test_out, pipe=True)
+    compile(test_out, test_in2, pipe=True)
     sh(["diff", "-u", test_in, test_in2])
 
 class Lines(list):

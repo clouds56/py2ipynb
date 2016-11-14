@@ -305,8 +305,11 @@ def normalize_cell(ct, cc):
 import nbformat
 
 def convert_to(in_name):
-    with open(in_name) as f:
-        a = f.readlines()
+    if isinstance(in_name, str):
+        with open(in_name) as f:
+            a = f.readlines()
+    else:
+        a = in_name.readlines()
     t = [lx(x) for x in a]
 
     p = parse(t)
@@ -326,24 +329,23 @@ import argparse
 def ipynb_main():
     import __main__ as main
     if not hasattr(main, '__file__'):
-        sys.argv = ["py2ipynb", "-o", "py2ipynb.py", "--verb", "--input", "py2ipynb.ipynb"]
+        sys.argv = ["py2ipynb", "-o", os.path.join("..", "bin", "py2ipynb.py"), "--verb",
+                    "--input", "py2ipynb.ipynb"]
         return True
     return False
 
 def main(args):
-    in_file = args.input or args.filename
+    in_file = args.input
     mode = args.mode or (in_file.endswith(".py") and "to") or (in_file.endswith(".ipynb") and "from")
     if not mode:
         return None
-    out_file = args.output
-    if out_file is None:
-        out_file = in_file + (".py" if mode == "from" else ".ipynb")
-    #fin = sys.stdin if in_file == "stdin" else open(in_file)
+    out_file = args.output or in_file + (".py" if mode == "from" else ".ipynb")
+    fin = sys.stdin if in_file == "stdin" else open(in_file)
     fout = sys.stdout if out_file == "stdout" else open(out_file, "w")
     if mode == "from":
-        fout.write(convert_from(in_file, strip=args.strip))
+        fout.write(convert_from(fin, strip=args.strip))
     else:
-        nbformat.write(convert_to(in_file), fout, 4)
+        nbformat.write(convert_to(fin), fout, 4)
     return True
 
 if __name__ == "__main__":
@@ -358,9 +360,9 @@ if __name__ == "__main__":
                            help="output filename,\n" +
                                "if not specific <file_basename.py(from)|file_basename.ipynb(to)> will be used,\n" +
                                "if not present will output to stdout")
-    group_in = argparser.add_mutually_exclusive_group(required=True)
-    group_in.add_argument("-i", "--input", help="input filename")
-    group_in.add_argument("filename", nargs="?", type=str, help="ipynb or py file")
+    group_in = argparser.add_mutually_exclusive_group()
+    group_in.add_argument("-i", "--input", default="stdin", help="input filename")
+    group_in.add_argument("input", nargs="?", default=argparse.SUPPRESS, help="ipynb or py file")
     group_strip = argparser.add_mutually_exclusive_group()
     group_strip.add_argument('--no-strip', dest='strip', action='store_false',
                              help="whether strip trailing space in code cell")
@@ -371,6 +373,7 @@ if __name__ == "__main__":
     args = argparser.parse_args()
     if args.verbose:
         #argparser.print_help()
+        print("environment:", os.getcwd(), file=sys.stderr)
         print("arguments:", args, file=sys.stderr)
     if main(args) is None:
         argparser.print_help()
