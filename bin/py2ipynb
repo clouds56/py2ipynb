@@ -18,7 +18,7 @@ def clean_cell(cell, strip=False):
         if cell["cell_type"] != "markdown" and strip:
             cell["source"] = [s.rstrip() + "\n" for s in cell["source"]]
         else:
-            cell["source"] = [s + "\n" for s in cell["source"]]
+            cell["source"] = [s.rstrip("\r\n") + "\n" for s in cell["source"]]
         cell["source"] = "".join(cell["source"])
     return cell
 
@@ -290,9 +290,9 @@ def build_ast(tp):
 # In[ ]:
 
 def normalize_cell(ct, cc):
-    cc_n = [x if len(x)>0 and x[-1]=='\n' else x+"\n" for x in cc]
+    cc_n = [x.rstrip("\r\n")+"\n" for x in cc]
     if len(cc_n) > 0:
-        cc_n[-1].strip("\n")
+        cc_n[-1] = cc_n[-1].rstrip("\n")
     if ct == "COMMENT_IN":
         return new_code_cell(cc_n)
     if ct == "COMMENT_MD":
