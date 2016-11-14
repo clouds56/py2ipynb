@@ -2,12 +2,14 @@ from paver.easy import *
 
 src = path("src")
 bin = path("bin")
+test_dir = path("test")
 basename = "py2ipynb"
 exehead = "#!/usr/bin/python"
 
-def makesure_bin():
-    if not bin.exists():
-        bin.mkdir()
+def makesuredir(*args):
+    for dir in args:
+        if not dir.exists():
+            dir.mkdir()
 
 def check(input, output):
     if not path(output).exists() or path(input).mtime > path(output).mtime:
@@ -25,15 +27,17 @@ def compile(input, output):
 
 @task
 def build():
-    makesure_bin()
+    """build bin/py2ipynb.py"""
+    makesuredir(bin)
     compile(src / ("%s.ipynb" % basename), bin / ("%s.py" % basename))
 
 @task
 def test():
-    makesure_bin()
+    """test compile(decompile(bin/py2ipynb.py)) is fixed"""
+    makesuredir(bin, test_dir)
     test_in = bin / ("%s.py" % basename)
-    test_out = bin / ("%s.ipynb" % basename)
-    test_in2 = bin / ("%s-new.py" % basename)
+    test_out = test_dir / ("%s.ipynb" % basename)
+    test_in2 = test_dir / ("%s.py" % basename)
     decompile(test_in, test_out)
     compile(test_out, test_in2)
     sh(["diff", "-u", test_in, test_in2])
@@ -45,7 +49,8 @@ class Lines(list):
 @task
 @needs("build")
 def install():
-    makesure_bin()
+    """install executable file bin/py2ipynb"""
+    makesuredir(bin)
     exefile = bin / basename
     lines = Lines((bin / ("%s.py" % basename)).lines())
     lines[0] = exehead
