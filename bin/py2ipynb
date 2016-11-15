@@ -342,10 +342,14 @@ def main(args):
     out_file = args.output or in_file + (".py" if mode == "from" else ".ipynb")
     fin = sys.stdin if in_file == "stdin" else open(in_file)
     fout = sys.stdout if out_file == "stdout" else open(out_file, "w")
-    if mode == "from":
-        fout.write(convert_from(fin, strip=args.strip))
-    else:
-        nbformat.write(convert_to(fin), fout, 4)
+    try:
+        if mode == "from":
+            fout.write(convert_from(fin, strip=args.strip))
+        else:
+            nbformat.write(convert_to(fin), fout, 4)
+    except e:
+        print("error happens", e, file=sys.stderr)
+        return False
     return True
 
 if __name__ == "__main__":
@@ -376,5 +380,5 @@ if __name__ == "__main__":
         print("environment:", os.getcwd(), file=sys.stderr)
         print("arguments:", args, file=sys.stderr)
     if main(args) is None:
-        argparser.print_help()
+        print("wrong file type", file=sys.stderr)
 
