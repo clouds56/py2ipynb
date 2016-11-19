@@ -1,1 +1,1 @@
-*.ipynb	filter=ipynb
+src/*.ipynb	filter=ipynb
