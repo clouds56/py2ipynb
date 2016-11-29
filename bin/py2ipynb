@@ -356,6 +356,11 @@ if __name__ == "__main__":
     if ipynb_main():
         print("converting py2ipynb.ipynb")
     argparser = argparse.ArgumentParser(description='Convert from py file to ipynb file.')
+    group_hook = argparser.add_mutually_exclusive_group()
+    group_hook.add_argument("--hook", help="hook git inplace and exit", dest="hook")
+    group_hook.add_argument("--unhook", help="unhook git inplace and exit", dest="hook", action="store_false")
+    argparser.set_defaults(hook=None)
+
     group_ft = argparser.add_mutually_exclusive_group()
     group_ft.add_argument("-f", "--from", help="from ipynb to py", dest="mode", action="store_const", const="from")
     group_ft.add_argument("-t", "--to", help="from py to ipynb", dest="mode", action="store_const", const="to")
@@ -379,6 +384,21 @@ if __name__ == "__main__":
         #argparser.print_help()
         print("environment:", os.getcwd(), file=sys.stderr)
         print("arguments:", args, file=sys.stderr)
+    if args.hook != None:
+        from subprocess import call as sh
+        if args.hook != False:
+            cmd = "%s%s" % (args.hook, " --verbose" if args.verbose else "")
+            sys.exit(
+                (sh(["git", "config", "filter.ipynb.smudge", "%s -t" % cmd]) or
+                sh(["git", "config", "filter.ipynb.clean", "%s -f" % cmd]) or
+                sh(["git", "config", "filter.ipynb.required", "true"])) and
+                0
+            )
+        else:
+            sh(["git", "config", "--unset", "filter.ipynb.smudge"])
+            sh(["git", "config", "--unset", "filter.ipynb.clean"])
+            sh(["git", "config", "--unset", "filter.ipynb.required"])
+            sys.exit(0)
     if not main(args):
         sys.exit(1)
 

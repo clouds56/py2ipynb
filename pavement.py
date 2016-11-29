@@ -64,15 +64,18 @@ def install():
     sh("chmod +x '%s'" % exefile)
 
 @task
+@needs("install", "test")
+def all():
+    pass
+
+@task
 def hook():
     """hoot git config"""
-    sh(["git", "config", "filter.ipynb.smudge", "bin/py2ipynb -t --v"])
-    sh(["git", "config", "filter.ipynb.clean", "bin/py2ipynb -f --v"])
-    sh(["git", "config", "filter.ipynb.required", "true"])
+    exefile = bin / basename
+    sh([exefile, "--hook", exefile, "--verbose"])
 
 @task
 def unhook():
     """remove git config"""
-    sh("git config --unset filter.ipynb.smudge || true")
-    sh("git config --unset filter.ipynb.clean || true")
-    sh("git config --unset filter.ipynb.required || true")
+    exefile = bin / basename
+    sh([exefile, "--unhook", "--verbose"])
