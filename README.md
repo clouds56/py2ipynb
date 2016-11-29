@@ -1,30 +1,30 @@
 Usage
 =====
 
-	usage: py2ipynb [-h] [--hook HOOK | --unhook] [-f | -t] [-o [OUTPUT]]
-					[-i INPUT] [--no-strip | --strip] [--verbose]
-					[input]
+    usage: py2ipynb [-h] [--hook [HOOK] | --unhook] [-f | -t] [-o [OUTPUT]]
+                    [-i INPUT] [--no-strip | --strip] [--verbose]
+                    [input]
 
-	Convert from py file to ipynb file.
+    Convert from py file to ipynb file.
 
-	positional arguments:
-	  input                 ipynb or py file
+    positional arguments:
+      input                 ipynb or py file
 
-	optional arguments:
-	  -h, --help            show this help message and exit
-	  --hook HOOK           hook git inplace
-	  --unhook              unhook git inplace
-	  -f, --from            from ipynb to py
-	  -t, --to              from py to ipynb
-	  -o [OUTPUT], --output [OUTPUT]
-							output filename, if not specific
-							<file_basename.py(from)|file_basename.ipynb(to)> will
-							be used, if not present will output to stdout
-	  -i INPUT, --input INPUT
-							input filename
-	  --no-strip            whether strip trailing space in code cell
-	  --strip               defaut is True
-	  --verbose             print verbose information
+    optional arguments:
+      -h, --help            show this help message and exit
+      --hook [HOOK]         hook git inplace and exit
+      --unhook              unhook git inplace and exit
+      -f, --from            from ipynb to py
+      -t, --to              from py to ipynb
+      -o [OUTPUT], --output [OUTPUT]
+                            output filename, if not specific
+                            <input.py(from)|input.ipynb(to)> will be used, if not
+                            present will output to stdout
+      -i INPUT, --input INPUT
+                            input filename
+      --no-strip            whether strip trailing space in code cell
+      --strip               defaut is True
+      --verbose             print verbose information
 
 Steps
 =====

@@ -17,6 +17,9 @@ def check(input, output):
     info('%s is latest' % output)
     return False
 
+def checkfile(input):
+    sh(["test", "-s", input])
+
 def decompile(input, output, pipe=False):
     if check(input, output):
         if not pipe:
@@ -45,7 +48,9 @@ def test():
     test_out = test_dir / ("%s.ipynb" % basename)
     test_in2 = test_dir / ("%s.py" % basename)
     decompile(test_in, test_out, pipe=True)
+    checkfile(test_out)
     compile(test_out, test_in2, pipe=True)
+    checkfile(test_in2)
     sh(["diff", "-u", test_in, test_in2])
 
 class Lines(list):
@@ -62,6 +67,12 @@ def install():
     lines[0] = exehead
     exefile.write_lines(lines, linesep='\n')
     sh("chmod +x '%s'" % exefile)
+
+@task
+def clean():
+    sh(["git", "checkout", bin])
+    sh(["rm", "-rf", bin / ("%s.py" % basename)])
+    sh(["rm", "-rf", "test"])
 
 @task
 @needs("install", "test")
